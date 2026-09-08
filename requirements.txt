@@ -1,0 +1,10 @@
+streamlit
+tensorflow
+numpy
+pillow
+opencv-python
+scipy
+pandas
+matplotlib
+huggingface_hub
+huggingface_hub
