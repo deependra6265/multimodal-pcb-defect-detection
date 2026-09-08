@@ -24,6 +24,7 @@ PATCH_SIZE = 256
 THRESHOLD = 0.55
 MIN_AREA = 50
 MERGE_DISTANCE = 20
+BORDER_MARGIN = 12
 
 
 # ============================================================
@@ -151,21 +152,40 @@ def create_probability_map(
 
     return probability_map
 
-
 def detect_components(binary_mask):
 
-    labels, num_labels = ndimage.label(
-        binary_mask
+    # --------------------------------------------------------
+    # MORPHOLOGICAL CLEANUP
+    # --------------------------------------------------------
+
+    cleaned_mask = ndimage.binary_opening(
+        binary_mask,
+        structure=np.ones((3, 3))
     )
+
+    cleaned_mask = cleaned_mask.astype(np.uint8)
+
+    # --------------------------------------------------------
+    # CONNECTED COMPONENTS
+    # --------------------------------------------------------
+
+    labels, num_labels = ndimage.label(
+        cleaned_mask
+    )
+
+    H, W = cleaned_mask.shape
 
     defects = []
 
     for c in range(1, num_labels + 1):
 
-        ys, xs = np.where(labels == c)
+        ys, xs = np.where(
+            labels == c
+        )
 
         area = len(xs)
 
+        # Remove very small regions
         if area < MIN_AREA:
             continue
 
@@ -180,6 +200,20 @@ def detect_components(binary_mask):
             ys.max() - ys.min() + 1
         )
 
+        # ----------------------------------------------------
+        # BORDER NOISE FILTER
+        # ----------------------------------------------------
+
+        touches_border = (
+            x <= BORDER_MARGIN
+            or y <= BORDER_MARGIN
+            or x + width >= W - BORDER_MARGIN
+            or y + height >= H - BORDER_MARGIN
+        )
+
+        if touches_border:
+            continue
+
         defects.append({
             "area": area,
             "x": x,
@@ -187,6 +221,8 @@ def detect_components(binary_mask):
             "width": width,
             "height": height
         })
+
+    return defects, num_labels
 
     return defects, num_labels
 
@@ -273,8 +309,11 @@ def get_severity(area_percent):
     else:
         return "LOW"
 
-
-def create_report(defects, total_pixels, probability_map):
+def create_report(
+    defects,
+    total_pixels,
+    probability_map
+):
 
     rows = []
 
@@ -289,25 +328,68 @@ def create_report(defects, total_pixels, probability_map):
         x2 = x1 + d["width"]
         y2 = y1 + d["height"]
 
-        region = probability_map[y1:y2, x1:x2]
+        # ----------------------------------------------------
+        # CONFIDENCE FROM PREDICTED PIXELS ONLY
+        # ----------------------------------------------------
 
-        if region.size > 0:
-            confidence = float(region.mean() * 100)
+        region = probability_map[
+            y1:y2,
+            x1:x2
+        ]
+
+        predicted_pixels = region[
+            region >= THRESHOLD
+        ]
+        
+
+        if predicted_pixels.size > 0:
+
+            confidence = float(
+                predicted_pixels.mean() * 100
+            )
+
         else:
+
             confidence = 0.0
 
-        severity = get_severity(area_percent)
+        severity = get_severity(
+            area_percent
+        )
 
         rows.append({
-            "Defect_ID": f"D{i:02d}",
-            "Area_pixels": d["area"],
-            "X": d["x"],
-            "Y": d["y"],
-            "Width": d["width"],
-            "Height": d["height"],
-            "Area_percent": round(area_percent, 3),
-            "Confidence": round(confidence, 2),
-            "Severity": severity
+
+            "Defect_ID":
+                f"D{i:02d}",
+
+            "Area_pixels":
+                d["area"],
+
+            "X":
+                d["x"],
+
+            "Y":
+                d["y"],
+
+            "Width":
+                d["width"],
+
+            "Height":
+                d["height"],
+
+            "Area_percent":
+                round(
+                    area_percent,
+                    3
+                ),
+
+            "Confidence":
+                round(
+                    confidence,
+                    2
+                ),
+
+            "Severity":
+                severity
         })
 
     return pd.DataFrame(rows)
