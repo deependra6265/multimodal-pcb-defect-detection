@@ -616,6 +616,7 @@ if uploaded_file is not None:
             severity_chart
         )
     # ========================================================
+    #    # ========================================================
     # DETECTED IMAGE
     # ========================================================
 
@@ -632,6 +633,7 @@ if uploaded_file is not None:
         fig,
         use_container_width=True
     )
+
     # ========================================================
     # DEFECT TABLE
     # ========================================================
@@ -648,26 +650,26 @@ if uploaded_file is not None:
             hide_index=True
         )
 
-        #    # ----------------------------------------------------
-    # CSV DOWNLOAD
-    # ----------------------------------------------------
+        # ----------------------------------------------------
+        # CSV DOWNLOAD
+        # ----------------------------------------------------
 
-    csv_data = report_df.to_csv(
-        index=False
-    ).encode("utf-8")
+        csv_data = report_df.to_csv(
+            index=False
+        ).encode("utf-8")
 
-    st.download_button(
-        label="⬇️ Download Defect Report CSV",
-        data=csv_data,
-        file_name="PCB_Defect_Report.csv",
-        mime="text/csv"
-    )
+        st.download_button(
+            label="⬇️ Download Defect Report CSV",
+            data=csv_data,
+            file_name="PCB_Defect_Report.csv",
+            mime="text/csv"
+        )
 
-else:
+    else:
 
-    st.success(
-        "No defect regions detected."
-    )
+        st.success(
+            "No defect regions detected."
+        )
 
 else:
 
