@@ -21,7 +21,7 @@ MODEL_REPO = "deependra45/pcb-defect-unet"
 MODEL_FILENAME = "improved_unet.keras"
 
 PATCH_SIZE = 256
-THRESHOLD = 0.55
+THRESHOLD = 0.95
 MIN_AREA = 50
 MERGE_DISTANCE = 20
 BORDER_MARGIN = 12
